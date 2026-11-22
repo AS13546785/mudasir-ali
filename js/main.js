@@ -133,8 +133,8 @@ if (document.readyState === 'loading') {
 const navbar = document.getElementById('navbar');
 const hamburger = document.getElementById('hamburger');
 const navLinks = document.getElementById('navLinks');
-const navOverlay = document.getElementById('navOverlay');
 const navLinkItems = document.querySelectorAll('.nav-link');
+const drawerClose = document.getElementById('drawerClose');
 const MOBILE_NAV_BREAKPOINT = 900;
 
 function isMobileViewport() {
@@ -258,29 +258,36 @@ if (locoScroll && typeof locoScroll.on === 'function') {
 }
 triggerScrollUpdate();
 
-// Hamburger toggle
-if (hamburger && navLinks) {
-  hamburger.addEventListener('click', (e) => {
+// Hamburger toggle with instant touch & click responsiveness
+let lastMenuToggleTime = 0;
+function handleMobileMenuToggle(e) {
+  const now = Date.now();
+  if (now - lastMenuToggleTime < 250) return;
+  lastMenuToggleTime = now;
+  if (e) {
+    e.preventDefault();
     e.stopPropagation();
-    const shouldOpen = !navLinks.classList.contains('open');
-    setMobileMenuOpen(shouldOpen);
-  });
+  }
+  const shouldOpen = !navLinks.classList.contains('open');
+  setMobileMenuOpen(shouldOpen);
+}
+
+if (hamburger && navLinks) {
+  hamburger.addEventListener('click', handleMobileMenuToggle);
+  hamburger.addEventListener('touchend', handleMobileMenuToggle, { passive: false });
 }
 
 // Close mobile drawer on close button click
-const drawerClose = document.getElementById('drawerClose');
 if (drawerClose) {
-  drawerClose.addEventListener('click', (e) => {
-    e.stopPropagation();
+  const handleDrawerClose = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setMobileMenuOpen(false);
-  });
-}
-
-// Close mobile menu on overlay click
-if (navOverlay) {
-  navOverlay.addEventListener('click', () => {
-    setMobileMenuOpen(false);
-  });
+  };
+  drawerClose.addEventListener('click', handleDrawerClose);
+  drawerClose.addEventListener('touchend', handleDrawerClose, { passive: false });
 }
 
 // Close mobile menu on link click
@@ -290,13 +297,20 @@ navLinkItems.forEach(link => {
   });
 });
 
-// Close mobile menu when tapping outside nav
+// Close mobile menu when tapping outside drawer
 document.addEventListener('click', (event) => {
-  if (!isMobileViewport() || !navbar || !navLinks || !hamburger) return;
+  if (!isMobileViewport() || !navLinks || !hamburger) return;
   if (!navLinks.classList.contains('open')) return;
-  if (navbar.contains(event.target)) return;
+  if (navLinks.contains(event.target) || hamburger.contains(event.target)) return;
   setMobileMenuOpen(false);
 });
+
+document.addEventListener('touchend', (event) => {
+  if (!isMobileViewport() || !navLinks || !hamburger) return;
+  if (!navLinks.classList.contains('open')) return;
+  if (navLinks.contains(event.target) || hamburger.contains(event.target)) return;
+  setMobileMenuOpen(false);
+}, { passive: true });
 
 // Keep menu state correct across viewport changes
 window.addEventListener('resize', () => {
@@ -1097,7 +1111,9 @@ let lastTouchTime = 0;
 document.addEventListener('touchend', (e) => {
   const currentTime = Date.now();
   if (currentTime - lastTouchTime <= 300) {
-    e.preventDefault();
+    if (!e.target.closest('a, button, input, textarea, select, .hamburger, .drawer-close, .lightbox-close, .lightbox-content')) {
+      e.preventDefault();
+    }
   }
   lastTouchTime = currentTime;
 }, { passive: false });

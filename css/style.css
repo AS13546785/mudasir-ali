@@ -2734,6 +2734,19 @@ body.nav-open .navbar {
     line-height: 1.65;
   }
 
+  /* ======================== HERO MOBILE ZERO-JANK DISPLAY ======================== */
+  /* Remove scroll-triggered lag, 400ms delay, and pop-in translate jerks for hero content & buttons on mobile */
+  .hero .hero-content [data-aos],
+  .hero .hero-buttons,
+  .hero .hero-buttons [data-aos],
+  .hero .hero-social,
+  .hero .hero-social [data-aos],
+  .hero .hero-image[data-aos] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
   .hero-buttons {
     width: 100%;
     max-width: 310px;
@@ -2744,6 +2757,7 @@ body.nav-open .navbar {
     justify-content: center;
     gap: 12px;
     padding: 0;
+    transform: translateZ(0);
   }
 
   .hero-buttons .btn {
@@ -2754,6 +2768,7 @@ body.nav-open .navbar {
     justify-content: center;
     padding: 13px 24px;
     box-sizing: border-box;
+    transform: translateZ(0);
   }
 
   .hero-social {
@@ -2876,10 +2891,29 @@ body.nav-open .navbar {
     height: 100%;
   }
 
+  /* ======================== HERO MOBILE ZERO-JANK DISPLAY ======================== */
+  /* Ensure hero content & action buttons on mobile are instantly in-place, perfectly rendered,
+     and completely free of scroll-triggered lag, 400ms delay, and pop-in translate jerks */
+  .hero .hero-content [data-aos],
+  .hero .hero-buttons,
+  .hero .hero-buttons [data-aos],
+  .hero .hero-social,
+  .hero .hero-social [data-aos],
+  .hero .hero-image[data-aos] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
   .hero-buttons {
     width: 100%;
     max-width: 290px;
     margin: 0 auto 26px;
+    transform: translateZ(0);
+  }
+
+  .hero-buttons .btn {
+    transform: translateZ(0);
   }
 
   .trust-badges {

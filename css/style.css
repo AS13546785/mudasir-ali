@@ -754,20 +754,20 @@ body.nav-open .navbar {
   transition: transform 0.95s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.95s cubic-bezier(0.25, 1, 0.5, 1);
   will-change: transform, box-shadow;
   box-shadow:
-    0 0 20px rgba(255, 255, 255, 0.45),
-    0 0 45px rgba(255, 255, 255, 0.22),
+    0 0 15px rgba(16, 55, 131, 0.4),
+    0 0 30px rgba(16, 55, 131, 0.2),
     0 15px 35px rgba(0, 0, 0, 0.7);
 }
 
 .hero-frame-container:hover {
   transform: scale(1.05);
   box-shadow:
-    0 0 30px rgba(255, 255, 255, 0.65),
-    0 0 60px rgba(255, 255, 255, 0.35),
+    0 0 25px rgba(16, 55, 131, 0.55),
+    0 0 50px rgba(16, 55, 131, 0.35),
     0 20px 45px rgba(0, 0, 0, 0.8);
 }
 
-/* Continuous 360-degree rotating border glow animated in pure white */
+/* Continuous 360-degree rotating border glow animated purely with #103783 */
 .hero-frame-container::before {
   content: '';
   position: absolute;
@@ -777,11 +777,11 @@ body.nav-open .navbar {
   height: 200%;
   background: conic-gradient(from 0deg,
       transparent 0deg,
-      rgba(255, 255, 255, 0.95) 70deg,
-      rgba(255, 255, 255, 0.4) 140deg,
+      #103783 70deg,
+      rgba(16, 55, 131, 0.4) 140deg,
       transparent 200deg,
-      rgba(255, 255, 255, 0.95) 270deg,
-      rgba(255, 255, 255, 0.3) 330deg,
+      #103783 270deg,
+      rgba(16, 55, 131, 0.3) 330deg,
       transparent 360deg);
   animation: liveBorderSpin 3.5s linear infinite;
   filter: blur(10px);
@@ -791,7 +791,7 @@ body.nav-open .navbar {
   will-change: transform;
 }
 
-/* Sharp accent highlight spinner in pure white */
+/* Sharp accent highlight spinner with #103783 */
 .hero-frame-container::after {
   content: '';
   position: absolute;
@@ -801,10 +801,10 @@ body.nav-open .navbar {
   height: 200%;
   background: conic-gradient(from 0deg,
       transparent 0deg,
-      #ffffff 80deg,
-      rgba(255, 255, 255, 0.85) 120deg,
+      #103783 80deg,
+      rgba(16, 55, 131, 0.8) 120deg,
       transparent 160deg,
-      #ffffff 260deg,
+      #103783 260deg,
       transparent 320deg);
   animation: liveBorderSpin 3.5s linear infinite;
   z-index: 1;
@@ -812,7 +812,7 @@ body.nav-open .navbar {
   will-change: transform;
 }
 
-/* Continuous Live Moving Blobs animated in luminous white */
+/* Continuous Live Moving Blobs animated with #103783 */
 .glow-blob {
   position: absolute;
   width: 140px;
@@ -824,14 +824,14 @@ body.nav-open .navbar {
 }
 
 .glow-blob-1 {
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 70%);
+  background: radial-gradient(circle, #103783 0%, rgba(16, 55, 131, 0) 70%);
   top: 15%;
   left: 15%;
   animation: blobOrbit1 4.5s linear infinite;
 }
 
 .glow-blob-2 {
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 70%);
+  background: radial-gradient(circle, #103783 0%, rgba(16, 55, 131, 0) 70%);
   bottom: 15%;
   right: 15%;
   animation: blobOrbit2 4.5s linear infinite;

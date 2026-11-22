@@ -133,6 +133,7 @@ if (document.readyState === 'loading') {
 const navbar = document.getElementById('navbar');
 const hamburger = document.getElementById('hamburger');
 const navLinks = document.getElementById('navLinks');
+const navOverlay = document.getElementById('navOverlay');
 const navLinkItems = document.querySelectorAll('.nav-link');
 const MOBILE_NAV_BREAKPOINT = 900;
 
@@ -259,9 +260,17 @@ triggerScrollUpdate();
 
 // Hamburger toggle
 if (hamburger && navLinks) {
-  hamburger.addEventListener('click', () => {
+  hamburger.addEventListener('click', (e) => {
+    e.stopPropagation();
     const shouldOpen = !navLinks.classList.contains('open');
     setMobileMenuOpen(shouldOpen);
+  });
+}
+
+// Close mobile menu on overlay click
+if (navOverlay) {
+  navOverlay.addEventListener('click', () => {
+    setMobileMenuOpen(false);
   });
 }
 
@@ -806,23 +815,33 @@ if (lightbox) {
         document.body.style.overflow = 'hidden'; // Prevent scroll
         
         // Reset zoom state on open
-        if (lightboxImg) {
-          lightboxImg.style.transformOrigin = 'center center';
-          lightboxImg.style.transform = 'scale(1)';
-        }
-        if (lightboxContent) lightboxContent.classList.remove('is-zoomed');
+        setLightboxZoom(false);
       });
     }
   });
 
+  const zoomHint = lightboxContent ? lightboxContent.querySelector('.lightbox-zoom-hint') : null;
+  let isLightboxZoomed = false;
+
+  const setLightboxZoom = (zoomed, originX = '50%', originY = '50%') => {
+    isLightboxZoomed = zoomed;
+    if (zoomed && lightboxImg && lightboxContent) {
+      lightboxImg.style.transformOrigin = `${originX} ${originY}`;
+      lightboxImg.style.transform = 'scale(2.2)';
+      lightboxContent.classList.add('is-zoomed');
+      if (zoomHint) zoomHint.innerHTML = '<i class="fas fa-search-minus"></i> Tap / Click to Zoom Out';
+    } else if (lightboxImg && lightboxContent) {
+      lightboxImg.style.transformOrigin = 'center center';
+      lightboxImg.style.transform = 'scale(1)';
+      lightboxContent.classList.remove('is-zoomed');
+      if (zoomHint) zoomHint.innerHTML = '<i class="fas fa-search-plus"></i> Tap / Click to Zoom';
+    }
+  };
+
   const closeLightbox = () => {
     lightbox.classList.remove('show');
     document.body.style.overflow = '';
-    if (lightboxImg) {
-      lightboxImg.style.transformOrigin = 'center center';
-      lightboxImg.style.transform = 'scale(1)';
-    }
-    if (lightboxContent) lightboxContent.classList.remove('is-zoomed');
+    setLightboxZoom(false);
   };
 
   if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
@@ -835,27 +854,35 @@ if (lightbox) {
     if (e.key === 'Escape' && lightbox.classList.contains('show')) closeLightbox();
   });
 
-  // Interactive E-commerce Product Image Zoom on Mousemove
+  // Tap or Click to toggle Zoom In and Zoom Out
   if (lightboxContent && lightboxImg) {
-    lightboxContent.addEventListener('mousemove', (e) => {
-      const rect = lightboxImg.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return;
-      
-      const x = ((e.clientX - rect.left) / rect.width) * 100;
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
-      
-      const clampedX = Math.max(0, Math.min(100, x));
-      const clampedY = Math.max(0, Math.min(100, y));
-      
-      lightboxImg.style.transformOrigin = `${clampedX}% ${clampedY}%`;
-      lightboxImg.style.transform = 'scale(2.2)';
-      lightboxContent.classList.add('is-zoomed');
+    lightboxContent.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isLightboxZoomed) {
+        setLightboxZoom(false);
+      } else {
+        const rect = lightboxImg.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+          const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+          setLightboxZoom(true, `${x}%`, `${y}%`);
+        } else {
+          setLightboxZoom(true);
+        }
+      }
     });
 
-    lightboxContent.addEventListener('mouseleave', () => {
-      lightboxImg.style.transformOrigin = 'center center';
-      lightboxImg.style.transform = 'scale(1)';
-      lightboxContent.classList.remove('is-zoomed');
+    // On desktop, mousemove while zoomed allows smooth panning
+    const isTouchDevice = () => ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+    lightboxContent.addEventListener('mousemove', (e) => {
+      if (isTouchDevice()) return;
+      if (!isLightboxZoomed) return;
+      const rect = lightboxImg.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+      const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+      lightboxImg.style.transformOrigin = `${x}% ${y}%`;
     });
   }
 }

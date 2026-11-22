@@ -11,14 +11,14 @@ try {
       lenisOptions: {
         wrapper: window,
         content: document.documentElement,
-        lerp: 0.08,
-        duration: 1.2,
+        lerp: 0.12,
+        duration: 0.85,
         orientation: 'vertical',
         gestureOrientation: 'vertical',
         smoothWheel: true,
         smoothTouch: false,
-        wheelMultiplier: 1,
-        touchMultiplier: 1.8,
+        wheelMultiplier: 1.0,
+        touchMultiplier: 1.5,
         normalizeWheel: true,
         easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t))
       }
@@ -58,10 +58,10 @@ function initSpiderWebParticles() {
     particlesJS('particles-js', {
       "particles": {
         "number": {
-          "value": 55,
+          "value": 38,
           "density": {
             "enable": true,
-            "value_area": 920
+            "value_area": 950
           }
         },
         "color": {
@@ -80,10 +80,10 @@ function initSpiderWebParticles() {
         },
         "line_linked": {
           "enable": true,
-          "distance": 160,
+          "distance": 140,
           "color": "#60a5fa",
           "opacity": 0.26,
-          "width": 1.1
+          "width": 1.0
         },
         "move": {
           "enable": true,
@@ -148,15 +148,114 @@ function setMobileMenuOpen(isOpen) {
   document.body.classList.toggle('nav-open', isOpen);
 }
 
-// Sticky on scroll
-window.addEventListener('scroll', () => {
-  if (navbar && window.scrollY > 20) {
-    navbar.classList.add('scrolled');
-  } else if (navbar) {
-    navbar.classList.remove('scrolled');
+/* ======================== UNIFIED HIGH-PERFORMANCE SCROLL ENGINE ======================== */
+const progressBar = document.createElement('div');
+progressBar.style.cssText = `
+  position: fixed;
+  top: 0; left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #0061FF, #00c6ff);
+  z-index: 10000;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(0, 198, 255, 0.85);
+  will-change: width;
+`;
+document.body.appendChild(progressBar);
+
+const scrollToTopBtn = document.getElementById('scrollToTop');
+
+let cachedSections = [];
+let cachedMaxScroll = 1;
+
+function updateMetricsCache() {
+  const sections = document.querySelectorAll('section[id]');
+  cachedSections = Array.from(sections).map(section => ({
+    id: section.getAttribute('id'),
+    top: section.offsetTop,
+    height: section.offsetHeight
+  }));
+  const docH = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+  cachedMaxScroll = Math.max(1, docH - window.innerHeight);
+}
+
+window.addEventListener('resize', updateMetricsCache, { passive: true });
+window.addEventListener('load', updateMetricsCache, { passive: true });
+updateMetricsCache();
+setTimeout(updateMetricsCache, 400);
+
+let scrollTicking = false;
+function triggerScrollUpdate() {
+  if (!scrollTicking) {
+    requestAnimationFrame(() => {
+      runScrollBatch();
+      scrollTicking = false;
+    });
+    scrollTicking = true;
   }
-  updateActiveNavLink();
-}, { passive: true });
+}
+
+function runScrollBatch() {
+  let scrolled = 0;
+  if (locoScroll) {
+    if (typeof locoScroll.lenisInstance?.scroll === 'number') {
+      scrolled = Math.max(scrolled, locoScroll.lenisInstance.scroll);
+    } else if (typeof locoScroll.scroll?.y === 'number') {
+      scrolled = Math.max(scrolled, locoScroll.scroll.y);
+    } else if (typeof locoScroll.scroll === 'number') {
+      scrolled = Math.max(scrolled, locoScroll.scroll);
+    }
+  }
+  const winY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+  scrolled = Math.max(scrolled, winY);
+
+  // 1. Sticky Navbar
+  if (navbar) {
+    if (scrolled > 20) {
+      if (!navbar.classList.contains('scrolled')) navbar.classList.add('scrolled');
+    } else {
+      if (navbar.classList.contains('scrolled')) navbar.classList.remove('scrolled');
+    }
+  }
+
+  // 2. Active Nav Link (Zero forced layout reflow - using cached geometry)
+  if (cachedSections.length > 0) {
+    const scrollPos = scrolled + window.innerHeight / 3;
+    for (let i = 0; i < cachedSections.length; i++) {
+      const sec = cachedSections[i];
+      if (scrollPos >= sec.top && scrollPos < sec.top + sec.height) {
+        navLinkItems.forEach(link => {
+          if (link.getAttribute('data-section') === sec.id) {
+            link.classList.add('active');
+          } else {
+            link.classList.remove('active');
+          }
+        });
+        break;
+      }
+    }
+  }
+
+  // 3. Scroll progress bar (Zero forced layout reflow)
+  if (cachedMaxScroll > 0) {
+    const progress = Math.min(100, Math.max(0, (scrolled / cachedMaxScroll) * 100));
+    progressBar.style.width = progress + '%';
+  }
+
+  // 4. Scroll To Top Button
+  if (scrollToTopBtn) {
+    if (scrolled > 200) {
+      if (!scrollToTopBtn.classList.contains('visible')) scrollToTopBtn.classList.add('visible');
+    } else {
+      if (scrollToTopBtn.classList.contains('visible')) scrollToTopBtn.classList.remove('visible');
+    }
+  }
+}
+
+window.addEventListener('scroll', triggerScrollUpdate, { passive: true });
+if (locoScroll && typeof locoScroll.on === 'function') {
+  locoScroll.on('scroll', triggerScrollUpdate);
+}
+triggerScrollUpdate();
 
 // Hamburger toggle
 if (hamburger && navLinks) {
@@ -191,28 +290,6 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') setMobileMenuOpen(false);
 });
 
-/* Active nav link on scroll */
-function updateActiveNavLink() {
-  const sections = document.querySelectorAll('section[id]');
-  const scrollPos = window.scrollY + window.innerHeight / 3;
-
-  sections.forEach(section => {
-    const sectionTop = section.offsetTop;
-    const sectionBottom = sectionTop + section.offsetHeight;
-    const sectionId = section.getAttribute('id');
-
-    if (scrollPos >= sectionTop && scrollPos < sectionBottom) {
-      navLinkItems.forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('data-section') === sectionId) {
-          link.classList.add('active');
-        }
-      });
-    }
-  });
-}
-updateActiveNavLink();
-
 /* Smooth scroll for nav links */
 document.querySelectorAll('a[href^="#"]').forEach(link => {
   link.addEventListener('click', (e) => {
@@ -222,7 +299,7 @@ document.querySelectorAll('a[href^="#"]').forEach(link => {
     if (!target) return;
     e.preventDefault();
     if (locoScroll && typeof locoScroll.scrollTo === 'function') {
-      locoScroll.scrollTo(target, { offset: -70, duration: 1.2 });
+      locoScroll.scrollTo(target, { offset: -70, duration: 0.9 });
     } else {
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -231,10 +308,11 @@ document.querySelectorAll('a[href^="#"]').forEach(link => {
 
 /* ======================== AOS INIT ======================== */
 AOS.init({
-  duration: 700,
+  duration: 650,
   easing: 'ease-out-cubic',
   once: true,
-  offset: 80,
+  offset: 60,
+  disableMutationObserver: true,
 });
 
 /* ======================== GSAP SCROLL TRIGGERS ======================== */
@@ -851,73 +929,8 @@ if (hasGsap) {
   });
 }
 
-/* ======================== SCROLL PROGRESS BAR ======================== */
-const progressBar = document.createElement('div');
-progressBar.style.cssText = `
-  position: fixed;
-  top: 0; left: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #0061FF, #00c6ff);
-  z-index: 10000;
-  transition: width 0.1s linear;
-  pointer-events: none;
-  box-shadow: 0 0 10px rgba(0, 198, 255, 0.85);
-`;
-document.body.appendChild(progressBar);
-
-window.addEventListener('scroll', () => {
-  const scrolled = window.scrollY;
-  const maxScroll = document.body.scrollHeight - window.innerHeight;
-  const progress = (scrolled / maxScroll) * 100;
-  progressBar.style.width = progress + '%';
-}, { passive: true });
-
-/* ======================== SECTION ENTRANCE (handled by AOS) ======================== */
-
-/* ======================== SCROLL TO TOP BUTTON ======================== */
-const scrollToTopBtn = document.getElementById('scrollToTop');
+/* ======================== SCROLL TO TOP CLICK HANDLER ======================== */
 if (scrollToTopBtn) {
-  const getScrollY = () => {
-    let y = 0;
-    if (locoScroll) {
-      if (typeof locoScroll.lenisInstance?.scroll === 'number') {
-        y = Math.max(y, locoScroll.lenisInstance.scroll);
-      }
-      if (typeof locoScroll.scroll?.y === 'number') {
-        y = Math.max(y, locoScroll.scroll.y);
-      }
-      if (typeof locoScroll.scroll === 'number') {
-        y = Math.max(y, locoScroll.scroll);
-      }
-    }
-    const winY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-    return Math.max(y, winY);
-  };
-
-  const updateScrollBtn = (val) => {
-    const y = typeof val === 'number' ? val : getScrollY();
-    if (y > 200) {
-      scrollToTopBtn.classList.add('visible');
-    } else {
-      scrollToTopBtn.classList.remove('visible');
-    }
-  };
-
-  window.addEventListener('scroll', () => updateScrollBtn(), { passive: true });
-  document.addEventListener('scroll', () => updateScrollBtn(), { passive: true });
-
-  if (locoScroll && typeof locoScroll.on === 'function') {
-    locoScroll.on('scroll', (args) => {
-      const scrollPos = typeof args === 'number' ? args : (typeof args?.scroll === 'number' ? args.scroll : getScrollY());
-      updateScrollBtn(scrollPos);
-    });
-  }
-
-  // Periodic check as a solid fail-safe
-  setInterval(() => {
-    updateScrollBtn();
-  }, 350);
-
   const doScrollTop = (e) => {
     if (e) {
       e.preventDefault();
@@ -929,11 +942,11 @@ if (scrollToTopBtn) {
     // 1. LocomotiveScroll instance smooth scroll
     if (locoScroll && typeof locoScroll.scrollTo === 'function') {
       try {
-        locoScroll.scrollTo(homeEl, { offset: 0, duration: 1.2 });
+        locoScroll.scrollTo(homeEl, { offset: 0, duration: 0.9 });
         return;
       } catch (err) {
         try {
-          locoScroll.scrollTo(0, { duration: 1.2 });
+          locoScroll.scrollTo(0, { duration: 0.9 });
           return;
         } catch (e2) {}
       }
@@ -942,7 +955,7 @@ if (scrollToTopBtn) {
     // 2. Lenis direct instance
     if (locoScroll && locoScroll.lenisInstance && typeof locoScroll.lenisInstance.scrollTo === 'function') {
       try {
-        locoScroll.lenisInstance.scrollTo(0, { duration: 1.2 });
+        locoScroll.lenisInstance.scrollTo(0, { duration: 0.9 });
         return;
       } catch (err) {}
     }

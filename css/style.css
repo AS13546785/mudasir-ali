@@ -102,6 +102,11 @@ button {
   z-index: 0;
   pointer-events: none;
   opacity: 0.72;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .hero,
@@ -1015,8 +1020,10 @@ section {
   box-shadow:
     0 14px 35px rgba(0, 0, 0, 0.7),
     0 0 24px rgba(79, 142, 247, 0.25);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
   transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
   animation: badgeFloating 4s ease-in-out infinite;
 }
@@ -1146,8 +1153,10 @@ section {
   position: relative;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease, border-color 0.35s ease;
 }
 
@@ -1949,8 +1958,10 @@ section {
   visibility: hidden;
   transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   pointer-events: none;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .toast.show {

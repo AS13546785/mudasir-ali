@@ -267,6 +267,15 @@ if (hamburger && navLinks) {
   });
 }
 
+// Close mobile drawer on close button click
+const drawerClose = document.getElementById('drawerClose');
+if (drawerClose) {
+  drawerClose.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setMobileMenuOpen(false);
+  });
+}
+
 // Close mobile menu on overlay click
 if (navOverlay) {
   navOverlay.addEventListener('click', () => {
@@ -1055,3 +1064,44 @@ if (scrollToTopBtn) {
   scrollToTopBtn.addEventListener('touchend', doScrollTop);
   scrollToTopBtn.addEventListener('pointerup', doScrollTop);
 }
+
+/* ======================== PREVENT IMAGE DOWNLOAD & TEXT SELECTION ======================== */
+document.addEventListener('contextmenu', (e) => {
+  if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    return false;
+  }
+});
+
+document.addEventListener('dragstart', (e) => {
+  if (e.target.tagName === 'IMG' || e.target.tagName === 'A') {
+    e.preventDefault();
+    return false;
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S' || e.key === 'u' || e.key === 'U')) {
+    e.preventDefault();
+  }
+});
+
+/* ======================== PREVENT MOBILE PINCH & DOUBLE-TAP ZOOM ======================== */
+document.addEventListener('touchstart', (e) => {
+  if (e.touches && e.touches.length > 1) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+let lastTouchTime = 0;
+document.addEventListener('touchend', (e) => {
+  const currentTime = Date.now();
+  if (currentTime - lastTouchTime <= 300) {
+    e.preventDefault();
+  }
+  lastTouchTime = currentTime;
+}, { passive: false });
+
+document.addEventListener('gesturestart', (e) => {
+  e.preventDefault();
+});

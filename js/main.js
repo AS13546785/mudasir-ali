@@ -133,6 +133,7 @@ if (document.readyState === 'loading') {
 const navbar = document.getElementById('navbar');
 const hamburger = document.getElementById('hamburger');
 const navLinks = document.getElementById('navLinks');
+const navBackdrop = document.getElementById('navBackdrop');
 const navLinkItems = document.querySelectorAll('.nav-link');
 const drawerClose = document.getElementById('drawerClose');
 const MOBILE_NAV_BREAKPOINT = 900;
@@ -145,8 +146,25 @@ function setMobileMenuOpen(isOpen) {
   if (!hamburger || !navLinks) return;
   hamburger.classList.toggle('open', isOpen);
   navLinks.classList.toggle('open', isOpen);
+  if (navBackdrop) navBackdrop.classList.toggle('open', isOpen);
   hamburger.setAttribute('aria-expanded', String(isOpen));
   document.body.classList.toggle('nav-open', isOpen);
+  document.documentElement.classList.toggle('nav-open', isOpen);
+
+  // Stop / Resume LocomotiveScroll & Lenis when menu is open to prevent background scrolling
+  if (locoScroll) {
+    if (isOpen) {
+      if (typeof locoScroll.stop === 'function') locoScroll.stop();
+      if (locoScroll.lenisInstance && typeof locoScroll.lenisInstance.stop === 'function') {
+        locoScroll.lenisInstance.stop();
+      }
+    } else {
+      if (typeof locoScroll.start === 'function') locoScroll.start();
+      if (locoScroll.lenisInstance && typeof locoScroll.lenisInstance.start === 'function') {
+        locoScroll.lenisInstance.start();
+      }
+    }
+  }
 }
 
 /* ======================== UNIFIED HIGH-PERFORMANCE SCROLL ENGINE ======================== */
@@ -290,6 +308,19 @@ if (drawerClose) {
   drawerClose.addEventListener('touchend', handleDrawerClose, { passive: false });
 }
 
+// Close mobile menu on backdrop click or touch
+if (navBackdrop) {
+  const handleBackdropClose = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setMobileMenuOpen(false);
+  };
+  navBackdrop.addEventListener('click', handleBackdropClose);
+  navBackdrop.addEventListener('touchend', handleBackdropClose, { passive: false });
+}
+
 // Close mobile menu on link click
 navLinkItems.forEach(link => {
   link.addEventListener('click', () => {
@@ -311,6 +342,19 @@ document.addEventListener('touchend', (event) => {
   if (navLinks.contains(event.target) || hamburger.contains(event.target)) return;
   setMobileMenuOpen(false);
 }, { passive: true });
+
+// Prevent window or background scrolling while mobile menu is open
+window.addEventListener('touchmove', (e) => {
+  if (document.body.classList.contains('nav-open')) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+window.addEventListener('wheel', (e) => {
+  if (document.body.classList.contains('nav-open')) {
+    e.preventDefault();
+  }
+}, { passive: false });
 
 // Keep menu state correct across viewport changes
 window.addEventListener('resize', () => {

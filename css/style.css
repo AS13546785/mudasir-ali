@@ -101,9 +101,38 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
+html.nav-open,
 body.nav-open {
-  overflow: hidden;
+  overflow: hidden !important;
+  touch-action: none !important;
+  height: 100% !important;
+  overscroll-behavior: none !important;
+}
+
+/* Dark blurred backdrop overlay behind mobile menu */
+.nav-backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: rgba(4, 5, 14, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 9998;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.35s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.35s ease;
   touch-action: none;
+  overscroll-behavior: none;
+}
+
+body.nav-open .nav-backdrop,
+.nav-backdrop.open {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
 }
 
 img {
@@ -2373,6 +2402,7 @@ section {
     left: 0;
     right: auto;
     width: min(290px, 80vw);
+    height: 100%;
     height: 100dvh;
     background: linear-gradient(180deg, #0d0f1c 0%, #080911 100%);
     display: flex;
@@ -2390,8 +2420,9 @@ section {
     pointer-events: none;
     transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.35s ease;
     z-index: 99999;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: none;
   }
 
   .nav-links.open {
@@ -2405,7 +2436,8 @@ section {
     justify-content: flex-end;
     align-items: center;
     width: 100%;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+    flex-shrink: 0;
   }
 
   .drawer-close {
@@ -2430,10 +2462,11 @@ section {
   .drawer-menu {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     width: 100%;
     margin-bottom: auto;
     padding: 0;
+    flex-shrink: 0;
   }
 
   .drawer-menu li {
@@ -2484,6 +2517,15 @@ section {
     width: 100%;
     padding-top: 18px;
     border-top: 1px solid rgba(79, 142, 247, 0.15);
+    flex-shrink: 0;
+  }
+
+  @media (max-height: 520px) {
+    .nav-links {
+      overflow-y: auto;
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
+    }
   }
 
   .drawer-wa-btn {

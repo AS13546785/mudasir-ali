@@ -2151,7 +2151,7 @@ section {
 
 .developer-credit {
   color: #E74460;
-  font-weight: 700;
+  font-weight: 400;
   text-decoration: none;
   display: inline-block;
   transition: color 0.2s ease, opacity 0.2s ease;
@@ -2368,6 +2368,19 @@ body.nav-open .nav-overlay {
   .hamburger {
     display: flex;
   }
+
+  /* Hide custom browser scrollbar pill on mobile devices */
+  ::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  html,
+  body {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
 }
 
 /* Mobile */
@@ -2423,7 +2436,7 @@ body.nav-open .nav-overlay {
   }
 
   .hero-frame-container {
-    width: min(74vw, 310px);
+    width: min(82vw, 350px);
   }
 
   .hero-image-wrapper {
@@ -2468,7 +2481,7 @@ body.nav-open .nav-overlay {
   }
 
   .hero-frame-container {
-    width: min(84vw, 270px);
+    width: min(82vw, 315px);
   }
 
   .hero-image-wrapper {

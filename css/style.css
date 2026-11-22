@@ -109,7 +109,7 @@ body.nav-open {
   overscroll-behavior: none !important;
 }
 
-/* Dark blurred backdrop overlay behind mobile menu */
+/* Dark blurred backdrop overlay behind mobile menu (sits below navbar & menu drawer) */
 .nav-backdrop {
   position: fixed;
   inset: 0;
@@ -119,7 +119,7 @@ body.nav-open {
   background: rgba(4, 5, 14, 0.75);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  z-index: 9998;
+  z-index: 9990;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -422,8 +422,12 @@ section {
   height: var(--nav-height);
   display: flex;
   align-items: center;
-  z-index: 1000;
+  z-index: 10000;
   transition: var(--transition);
+}
+
+body.nav-open .navbar {
+  z-index: 10002 !important;
 }
 
 .navbar.scrolled {

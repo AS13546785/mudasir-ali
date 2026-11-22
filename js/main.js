@@ -485,42 +485,75 @@ if (testiSlides.length > 0) {
 
   /* Touch & Pointer Drag Swipe Support for Testimonials */
   let isTestiDragging = false;
+  let testiTouchActive = false;
   let testiStartX = 0;
+  let testiStartY = 0;
   let testiDiff = 0;
+  let testiIsHorizontal = null;
 
   const onTestiDragStart = (e) => {
-    isTestiDragging = true;
+    testiTouchActive = true;
+    isTestiDragging = false;
+    testiIsHorizontal = null;
     testiStartX = e.touches ? e.touches[0].clientX : e.clientX;
+    testiStartY = e.touches ? e.touches[0].clientY : e.clientY;
     testiDiff = 0;
     if (testiTimer) clearInterval(testiTimer);
-    testiTrack.classList.add('is-dragging');
-    testiTrack.style.transition = 'none';
   };
 
   const onTestiDragMove = (e) => {
-    if (!isTestiDragging) return;
+    if (!testiTouchActive) return;
     const x = e.touches ? e.touches[0].clientX : e.clientX;
-    testiDiff = x - testiStartX;
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    const diffX = x - testiStartX;
+    const diffY = y - testiStartY;
+
+    // Direction intent check: dead-zone threshold of 10px
+    if (testiIsHorizontal === null) {
+      if (Math.abs(diffY) > 8 && Math.abs(diffY) >= Math.abs(diffX)) {
+        // Vertical scroll intent: release drag immediately so page scrolls smoothly
+        testiIsHorizontal = false;
+        testiTouchActive = false;
+        return;
+      }
+      if (Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY)) {
+        // Confirmed horizontal swipe intent!
+        testiIsHorizontal = true;
+        isTestiDragging = true;
+        testiTrack.classList.add('is-dragging');
+        testiTrack.style.transition = 'none';
+      }
+    }
+
+    if (!isTestiDragging) return;
+
+    if (e.cancelable) e.preventDefault();
+    testiDiff = diffX;
     const slideW = testiSlides[0].offsetWidth + 24;
     const baseOffset = currentTesti * slideW;
     testiTrack.style.transform = `translateX(-${baseOffset - testiDiff}px)`;
   };
 
   const onTestiDragEnd = () => {
-    if (!isTestiDragging) return;
-    isTestiDragging = false;
-    testiTrack.classList.remove('is-dragging');
-    testiTrack.style.transition = 'transform 0.6s cubic-bezier(0.77, 0, 0.18, 1)';
-    if (Math.abs(testiDiff) > 50) {
-      if (testiDiff < 0) {
-        nextTesti();
+    if (!testiTouchActive && !isTestiDragging) return;
+    testiTouchActive = false;
+
+    if (isTestiDragging) {
+      isTestiDragging = false;
+      testiTrack.classList.remove('is-dragging');
+      testiTrack.style.transition = 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)';
+      if (Math.abs(testiDiff) > 50) {
+        if (testiDiff < 0) {
+          nextTesti();
+        } else {
+          prevTesti();
+        }
       } else {
-        prevTesti();
+        goTesti(currentTesti);
       }
-    } else {
-      goTesti(currentTesti);
     }
     testiDiff = 0;
+    testiIsHorizontal = null;
     startTestiAutoplay();
   };
 
@@ -528,9 +561,10 @@ if (testiSlides.length > 0) {
     wrapper.addEventListener('mousedown', onTestiDragStart);
     wrapper.addEventListener('touchstart', onTestiDragStart, { passive: true });
     window.addEventListener('mousemove', onTestiDragMove);
-    window.addEventListener('touchmove', onTestiDragMove, { passive: true });
+    window.addEventListener('touchmove', onTestiDragMove, { passive: false });
     window.addEventListener('mouseup', onTestiDragEnd);
     window.addEventListener('touchend', onTestiDragEnd);
+    window.addEventListener('touchcancel', onTestiDragEnd);
   }
 }
 
@@ -618,35 +652,53 @@ nextBtn.addEventListener('click', () => { next(); startAutoplay(); });
 
 // Touch / drag support
 const carouselEl = document.querySelector('.carousel-container');
-carouselEl.addEventListener('mousedown', onDragStart, { passive: true });
+let touchActive = false;
+let isHorizontalDrag = null;
+
+carouselEl.addEventListener('mousedown', onDragStart);
 carouselEl.addEventListener('touchstart', onDragStart, { passive: true });
-window.addEventListener('mousemove', onDragMove, { passive: true });
-window.addEventListener('touchmove', onDragMove, { passive: true });
+window.addEventListener('mousemove', onDragMove);
+window.addEventListener('touchmove', onDragMove, { passive: false });
 window.addEventListener('mouseup', onDragEnd);
 window.addEventListener('touchend', onDragEnd);
+window.addEventListener('touchcancel', onDragEnd);
 
 function onDragStart(e) {
-  isDragging = true;
+  touchActive = true;
+  isDragging = false;
+  isHorizontalDrag = null;
   dragMoved = false;
   startX = e.touches ? e.touches[0].clientX : e.clientX;
   startY = e.touches ? e.touches[0].clientY : e.clientY;
   dragDiff = 0;
   stopAutoplay();
-  track.classList.add('is-dragging');
-  track.style.transition = 'none';
 }
 
 function onDragMove(e) {
-  if (!isDragging) return;
+  if (!touchActive) return;
   const x = e.touches ? e.touches[0].clientX : e.clientX;
   const y = e.touches ? e.touches[0].clientY : e.clientY;
   const diffX = x - startX;
   const diffY = y - startY;
 
-  if (Math.abs(diffX) > 6 || Math.abs(diffY) > 6) {
-    dragMoved = true;
+  if (isHorizontalDrag === null) {
+    if (Math.abs(diffY) > 8 && Math.abs(diffY) >= Math.abs(diffX)) {
+      isHorizontalDrag = false;
+      touchActive = false;
+      return;
+    }
+    if (Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY)) {
+      isHorizontalDrag = true;
+      isDragging = true;
+      track.classList.add('is-dragging');
+      track.style.transition = 'none';
+    }
   }
 
+  if (!isDragging) return;
+
+  if (e.cancelable) e.preventDefault();
+  dragMoved = true;
   dragDiff = diffX;
   const slideW = slides[0].offsetWidth + 16;
   const baseOffset = currentIndex * slidesPerView * slideW;
@@ -654,19 +706,23 @@ function onDragMove(e) {
 }
 
 function onDragEnd() {
-  if (!isDragging) return;
-  isDragging = false;
-  track.classList.remove('is-dragging');
-  track.style.transition = 'transform 0.6s cubic-bezier(0.77, 0, 0.175, 1)';
-  
-  const wasDrag = dragMoved || Math.abs(dragDiff) > 8;
+  if (!touchActive && !isDragging) return;
+  touchActive = false;
 
-  if (Math.abs(dragDiff) > 60) {
-    dragDiff < 0 ? next() : prev();
-  } else {
-    goTo(currentIndex);
+  if (isDragging) {
+    isDragging = false;
+    track.classList.remove('is-dragging');
+    track.style.transition = 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)';
+    if (Math.abs(dragDiff) > 60) {
+      dragDiff < 0 ? next() : prev();
+    } else {
+      goTo(currentIndex);
+    }
   }
+
+  const wasDrag = dragMoved;
   dragDiff = 0;
+  isHorizontalDrag = null;
   startAutoplay();
 
   if (wasDrag) {

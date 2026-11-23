@@ -794,11 +794,11 @@ function goTo(index) {
   currentIndex = Math.max(0, Math.min(index, totalGroups - 1));
 
   if (slides.length > 0) {
-    const slideWidth = slides[0].getBoundingClientRect().width; 
-    const gap = slidesPerView === 1 ? 16 : 20;
-    const step = (slideWidth + gap) * slidesPerView;
-    const offset = currentIndex * step;
-    track.style.transform = `translateX(-${offset}px)`;
+    const targetSlide = slides[currentIndex * slidesPerView];
+    if (targetSlide) {
+      const offset = targetSlide.offsetLeft;
+      track.style.transform = `translateX(-${offset}px)`;
+    }
   }
   updateDots();
   updateCarouselCounter();
@@ -878,8 +878,8 @@ function onDragMove(e) {
   if (e.cancelable) e.preventDefault();
   dragMoved = true;
   dragDiff = diffX;
-  const slideW = slides[0].offsetWidth + 16;
-  const baseOffset = currentIndex * slidesPerView * slideW;
+  const targetSlide = slides[currentIndex * slidesPerView];
+  const baseOffset = targetSlide ? targetSlide.offsetLeft : 0;
   track.style.transform = `translateX(-${baseOffset - dragDiff}px)`;
 }
 

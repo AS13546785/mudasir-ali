@@ -19,7 +19,7 @@
 
 const GOOGLE_SHEET_CONFIG = {
   // Apna Google Sheet ka link yahan paste karein:
-  sheetUrl: "https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit?usp=sharing",
+  sheetUrl: "https://docs.google.com/spreadsheets/d/1hL9xYebScN9lQxahsrSV98_eR15Eu-Erfhxem6Uxx2g/edit?usp=sharing",
 
   // Tab ka naam (optional, agar pehla sheet tab use karna ho to null chor dein):
   sheetTab: null,

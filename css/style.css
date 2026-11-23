@@ -1779,6 +1779,67 @@ body.nav-open .navbar {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   background: #090c1b;
+  cursor: grab;
+  cursor: -webkit-grab;
+  user-select: none;
+}
+
+.sites-table-scroll.is-dragging-table {
+  cursor: grabbing !important;
+  cursor: -webkit-grabbing !important;
+  scroll-behavior: auto !important;
+}
+
+.site-number-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 6px;
+  padding: 3px 9px;
+  letter-spacing: 0.3px;
+}
+
+.site-number-badge i {
+  font-size: 0.72rem;
+  color: #00c6ff;
+}
+
+.site-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #00c6ff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.86rem;
+  transition: var(--transition);
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(0, 198, 255, 0.06);
+  border: 1px solid rgba(0, 198, 255, 0.22);
+}
+
+.site-link:hover {
+  color: #fff;
+  background: rgba(0, 198, 255, 0.22);
+  border-color: #00c6ff;
+  box-shadow: 0 0 12px rgba(0, 198, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.site-link i {
+  font-size: 0.72rem;
+  color: #38bdf8;
+  transition: transform 0.2s ease;
+}
+
+.site-link:hover i {
+  transform: translateX(1px) translateY(-1px);
 }
 
 .sites-live-indicator {

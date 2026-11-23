@@ -1409,9 +1409,16 @@ document.addEventListener('keydown', (e) => {
       if (rows.length > INITIAL_ROW_LIMIT) {
         expandWrap.style.display = 'block';
         const extraCount = rows.length - INITIAL_ROW_LIMIT;
-        if (seeMoreText) seeMoreText.textContent = `See More Sites (+${extraCount} more)`;
+        if (seeMoreText) {
+          seeMoreText.textContent = isExpanded ? 'See Less' : `See More Sites (+${extraCount} more)`;
+        }
         if (seeMoreIcon) {
-          seeMoreIcon.className = 'fas fa-chevron-down';
+          seeMoreIcon.className = isExpanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+        }
+
+        if (isExpanded) {
+          const extraRows = tbody.querySelectorAll('tr.row-extra');
+          extraRows.forEach(r => r.classList.remove('hidden-row'));
         }
 
         if (!seeMoreInitialized) {
@@ -1460,38 +1467,162 @@ document.addEventListener('keydown', (e) => {
 
     const colHeader = (headers && headers[colIdx]) ? headers[colIdx].toLowerCase() : '';
 
-    // If it looks like a DA / DR metric
-    if (/^(da|dr|authority)/i.test(colHeader) || /^da\s*\d+/i.test(text) || /^\d{2}(\+)?$/.test(text)) {
+    // 1. Site # / Row Numbering column (consistent across 1, 9, 10, 16+)
+    if (/^(#|site\s*#|sr|id|no\.?|number)/i.test(colHeader) || (colIdx === 0 && /^\d+$/.test(text))) {
+      return `<span class="site-number-badge"><i class="fas fa-hashtag"></i> ${safeText}</span>`;
+    }
+
+    // 2. Website URL / Domain (clickable link opening in new tab)
+    if (/url|website|domain|site\s*link/i.test(colHeader) || /^https?:\/\//i.test(text) || (/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/.test(text) && !text.includes(' '))) {
+      let href = text;
+      if (!/^https?:\/\//i.test(href)) {
+        href = 'https://' + href;
+      }
+      const cleanDisplay = text.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, '');
+      return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" class="site-link" title="Open ${escapeHtml(cleanDisplay)} in new tab"><i class="fas fa-external-link-alt"></i> <span>${escapeHtml(cleanDisplay)}</span></a>`;
+    }
+
+    // 3. DA / DR / Authority metrics
+    if (/^(da|dr|authority|moz|ahrefs)/i.test(colHeader) || /^da\s*\d+/i.test(text) || /^dr\s*\d+/i.test(text)) {
       return `<span class="da-badge">${safeText}</span>`;
     }
 
-    // If it looks like DoFollow
-    if (/dofollow/i.test(text)) {
-      return `<span class="dofollow-tag"><i class="fas fa-check"></i> ${safeText}</span>`;
+    // 4. DoFollow / Link Type
+    if (/dofollow/i.test(text) || /link\s*type/i.test(colHeader)) {
+      if (/dofollow/i.test(text)) {
+        return `<span class="dofollow-tag"><i class="fas fa-check"></i> ${safeText}</span>`;
+      }
+      return `<span class="dofollow-tag" style="color:#fbbf24;"><i class="fas fa-info-circle"></i> ${safeText}</span>`;
     }
 
-    // If it looks like Niche / Category
-    if (colIdx === 0 || /niche|category|topic/i.test(colHeader)) {
+    // 5. Price ($)
+    if (/price|cost|rate/i.test(colHeader) || /^\$|usd|pkr|affordable|wholesale|premium/i.test(text)) {
+      const displayPrice = /^\d+$/.test(text) ? `$${text}` : text;
+      return `<span class="price-tier">${escapeHtml(displayPrice)}</span>`;
+    }
+
+    // 6. Niche / Category
+    if (/niche|category|topic|industry/i.test(colHeader)) {
       let icon = 'fa-tag';
       let cls = 'general';
-      if (/tech|software|saas|code|it/i.test(text)) { icon = 'fa-laptop-code'; cls = 'tech'; }
-      else if (/business|finance|crypto|money/i.test(text)) { icon = 'fa-briefcase'; cls = 'business'; }
-      else if (/health|fitness|medical/i.test(text)) { icon = 'fa-heartbeat'; cls = 'health'; }
-      else if (/news|general|portal/i.test(text)) { icon = 'fa-newspaper'; cls = 'general'; }
+      if (/tech|software|saas|code|it|ai|cyber/i.test(text)) { icon = 'fa-laptop-code'; cls = 'tech'; }
+      else if (/business|finance|crypto|money|invest|venture/i.test(text)) { icon = 'fa-briefcase'; cls = 'business'; }
+      else if (/health|fitness|medical|wellness/i.test(text)) { icon = 'fa-heartbeat'; cls = 'health'; }
+      else if (/news|general|portal|media/i.test(text)) { icon = 'fa-newspaper'; cls = 'general'; }
+      else if (/lifestyle|home|living/i.test(text)) { icon = 'fa-couch'; cls = 'general'; }
+      else if (/e-?commerce|retail|shop/i.test(text)) { icon = 'fa-shopping-cart'; cls = 'business'; }
+      else if (/real estate|property/i.test(text)) { icon = 'fa-building'; cls = 'business'; }
+      else if (/marketing|seo|digital/i.test(text)) { icon = 'fa-bullhorn'; cls = 'tech'; }
+      else if (/travel|hospitality|hotel/i.test(text)) { icon = 'fa-plane-departure'; cls = 'general'; }
+      else if (/sustain|energy|green/i.test(text)) { icon = 'fa-leaf'; cls = 'health'; }
+      else if (/edu|career|learning/i.test(text)) { icon = 'fa-graduation-cap'; cls = 'tech'; }
+      else if (/auto|car|mobility/i.test(text)) { icon = 'fa-car'; cls = 'general'; }
       return `<span class="niche-badge ${cls}"><i class="fas ${icon}"></i> ${safeText}</span>`;
     }
 
-    // If it looks like price
-    if (/^\$|usd|pkr|affordable|wholesale|premium/i.test(text) || /price|cost|rate/i.test(colHeader)) {
-      return `<span class="price-tier">${safeText}</span>`;
+    // 7. Google Indexed
+    if (/index/i.test(colHeader)) {
+      if (/^yes$/i.test(text)) return `<span style="color:#22c55e; font-weight:700;"><i class="fas fa-check-circle" style="margin-right:4px;"></i>Yes</span>`;
+      if (/^no$/i.test(text)) return `<span style="color:#f43f5e; font-weight:700;"><i class="fas fa-times-circle" style="margin-right:4px;"></i>No</span>`;
     }
 
-    // If it's a URL or domain
-    if (/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/.test(text) && !text.includes(' ')) {
-      return `<span style="color:#00c6ff; font-weight:600;"><i class="fas fa-link" style="font-size:0.75rem; margin-right:4px;"></i>${safeText}</span>`;
+    // 8. Turnaround / TAT
+    if (/tat|turnaround|delivery/i.test(colHeader)) {
+      return `<span style="color:#cbd5e1; font-weight:500;"><i class="far fa-clock" style="color:#00c6ff; margin-right:5px;"></i>${safeText}</span>`;
+    }
+
+    // 9. Traffic
+    if (/traffic/i.test(colHeader)) {
+      return `<span style="font-weight:600; color:#e2e8f0;"><i class="fas fa-chart-line" style="color:#38bdf8; margin-right:5px; font-size:0.8rem;"></i>${safeText}</span>`;
     }
 
     return safeText;
+  }
+
+  /* Horizontal Drag-to-Scroll for Table */
+  function initTableDragScroll() {
+    const scrollContainer = document.querySelector('.sites-table-scroll');
+    if (!scrollContainer || scrollContainer.dataset.dragInit) return;
+    scrollContainer.dataset.dragInit = 'true';
+
+    let isDown = false;
+    let startX = 0;
+    let scrollStart = 0;
+    let hasMoved = false;
+
+    scrollContainer.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return; // Only left click
+      if (e.target.closest('a') || e.target.closest('button')) return;
+      isDown = true;
+      hasMoved = false;
+      scrollContainer.classList.add('is-dragging-table');
+      startX = e.clientX || e.pageX || 0;
+      scrollStart = scrollContainer.scrollLeft;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+      const currentX = e.clientX || e.pageX || 0;
+      const walk = (currentX - startX) * 1.5;
+      if (Math.abs(walk) > 4) hasMoved = true;
+      scrollContainer.scrollLeft = scrollStart - walk;
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!isDown) return;
+      isDown = false;
+      scrollContainer.classList.remove('is-dragging-table');
+      setTimeout(() => { hasMoved = false; }, 60);
+    });
+
+    // Suppress unintentional click if drag occurred
+    scrollContainer.addEventListener('click', (e) => {
+      if (hasMoved) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
+  }
+
+  function fetchSheetViaJsonp(sheetId, tabParam) {
+    return new Promise((resolve, reject) => {
+      const callbackName = 'googleSheetCallback_' + Math.floor(Math.random() * 1000000);
+      const script = document.createElement('script');
+
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('JSONP timeout'));
+      }, 12000);
+
+      function cleanup() {
+        clearTimeout(timeout);
+        try { delete window[callbackName]; } catch (e) { window[callbackName] = undefined; }
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
+
+      window[callbackName] = function(json) {
+        cleanup();
+        if (json && json.table && Array.isArray(json.table.rows)) {
+          const headers = (json.table.cols || []).map(c => c.label || c.id || '');
+          const rows = json.table.rows.map(r => (r.c || []).map(cell => {
+            if (!cell) return '';
+            if (cell.f !== undefined && cell.f !== null) return String(cell.f);
+            if (cell.v !== undefined && cell.v !== null) return String(cell.v);
+            return '';
+          }));
+          resolve({ headers, rows });
+        } else {
+          reject(new Error('Invalid sheet JSON structure'));
+        }
+      };
+
+      script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:${callbackName}${tabParam}&_t=${Date.now()}`;
+      script.onerror = () => {
+        cleanup();
+        reject(new Error('JSONP script load error'));
+      };
+      document.head.appendChild(script);
+    });
   }
 
   let isFetching = false;
@@ -1518,39 +1649,92 @@ document.addEventListener('keydown', (e) => {
     const tabParam = (window.GOOGLE_SHEET_CONFIG && window.GOOGLE_SHEET_CONFIG.sheetTab)
       ? `&sheet=${encodeURIComponent(window.GOOGLE_SHEET_CONFIG.sheetTab)}`
       : '';
-    const csvEndpoint = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv${tabParam}&_t=${Date.now()}`;
+    const timestamp = Date.now();
+    const csvEndpoint = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv${tabParam}&_t=${timestamp}`;
+    const fallbackEndpoint = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv${tabParam}&_t=${timestamp}`;
+
+    const isLocalFile = typeof window !== 'undefined' && window.location && window.location.protocol === 'file:';
+
+    let parsedHeaders = null;
+    let parsedRows = null;
+
+    // 1. If loaded locally via file:///, use JSONP directly to bypass local CORS immediately
+    if (isLocalFile) {
+      try {
+        const jsonpData = await fetchSheetViaJsonp(sheetId, tabParam);
+        if (jsonpData && jsonpData.rows && jsonpData.rows.length > 0) {
+          parsedHeaders = jsonpData.headers;
+          parsedRows = jsonpData.rows;
+        }
+      } catch (jsonpErr) {
+        console.warn('[LOCAL JSONP NOTICE]', jsonpErr);
+      }
+    } else {
+      // 2. On HTTP/HTTPS servers, try standard fast fetch first
+      try {
+        let csvText = '';
+        try {
+          const res = await fetch(csvEndpoint, { cache: 'no-store' });
+          if (res.ok) csvText = await res.text();
+        } catch (e) {
+          // Fallback to export endpoint
+        }
+
+        if (!csvText || csvText.length < 20) {
+          const res2 = await fetch(fallbackEndpoint, { cache: 'no-store' });
+          if (res2.ok) csvText = await res2.text();
+        }
+
+        if (csvText && csvText.length > 20) {
+          const allRows = parseCSV(csvText);
+          if (allRows.length >= 2) {
+            parsedHeaders = allRows[0];
+            parsedRows = allRows.slice(1);
+          }
+        }
+      } catch (fetchErr) {
+        // Fetch failed
+      }
+
+      // JSONP fallback if HTTP fetch had an issue
+      if (!parsedHeaders || !parsedRows || parsedRows.length === 0) {
+        try {
+          const jsonpData = await fetchSheetViaJsonp(sheetId, tabParam);
+          if (jsonpData && jsonpData.rows && jsonpData.rows.length > 0) {
+            parsedHeaders = jsonpData.headers;
+            parsedRows = jsonpData.rows;
+          }
+        } catch (jsonpErr) {
+          console.warn('[JSONP FALLBACK NOTICE]', jsonpErr);
+        }
+      }
+    }
 
     try {
-      const res = await fetch(csvEndpoint, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const csvText = await res.text();
-      const parsedRows = parseCSV(csvText);
-
-      if (parsedRows.length >= 2) {
-        // First row is headers
-        const rawHeaders = parsedRows[0];
-        // Filter out empty columns
+      if (parsedHeaders && parsedRows && parsedRows.length > 0) {
+        // Filter out completely empty columns
         const validColIndices = [];
-        rawHeaders.forEach((h, idx) => {
+        parsedHeaders.forEach((h, idx) => {
           if (h && h.trim().length > 0) validColIndices.push(idx);
         });
 
-        const maxCols = validColIndices.length > 0 ? validColIndices.length : Math.min(6, rawHeaders.length);
-        const headers = (validColIndices.length > 0 ? validColIndices.map(i => rawHeaders[i]) : rawHeaders.slice(0, maxCols));
+        const maxCols = validColIndices.length > 0 ? validColIndices.length : Math.min(6, parsedHeaders.length);
+        const headers = (validColIndices.length > 0 ? validColIndices.map(i => parsedHeaders[i]) : parsedHeaders.slice(0, maxCols));
 
-        const maxRows = (window.GOOGLE_SHEET_CONFIG && window.GOOGLE_SHEET_CONFIG.maxPreviewRows) || 15;
-        const dataRows = parsedRows.slice(1, maxRows + 1).map(row => {
+        const maxRows = (window.GOOGLE_SHEET_CONFIG && window.GOOGLE_SHEET_CONFIG.maxPreviewRows) || 500;
+        const dataRows = parsedRows.slice(0, maxRows).map(row => {
           return validColIndices.length > 0 ? validColIndices.map(i => row[i] || '') : row.slice(0, maxCols);
         });
 
         renderTable(headers, dataRows);
+        initTableDragScroll();
 
         if (syncStatusEl) {
-          syncStatusEl.innerHTML = `<span style="color:#22c55e;"><i class="fas fa-check-circle"></i> Live Connected (${parsedRows.length - 1} Sites)</span>`;
+          syncStatusEl.innerHTML = `<span style="color:#22c55e;"><i class="fas fa-check-circle"></i> Live Connected (${dataRows.length} Sites)</span>`;
         }
       }
     } catch (err) {
-      console.warn('[GOOGLE SHEET SYNC NOTICE]', 'Could not fetch public CSV, displaying verified sample table.', err);
+      console.warn('[GOOGLE SHEET SYNC NOTICE]', 'Could not render live sheet data, displaying verified sample table.', err);
       if (syncStatusEl) {
         syncStatusEl.innerHTML = `<span><i class="fas fa-database"></i> Live Sheet Connected</span>`;
       }
@@ -1562,6 +1746,7 @@ document.addEventListener('keydown', (e) => {
 
   // Initial fetch
   fetchLiveSheetData();
+  initTableDragScroll();
 
   // Manual refresh button
   const refreshBtn = document.getElementById('refreshSheetBtn');

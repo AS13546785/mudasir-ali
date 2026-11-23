@@ -25,7 +25,7 @@ const GOOGLE_SHEET_CONFIG = {
   sheetTab: null,
 
   // Table mein maximum kitni rows display karni hain:
-  maxPreviewRows: 15,
+  maxPreviewRows: 500,
 
   // Auto-refresh interval (milliseconds mein, e.g. 60000 = har 1 minute baad auto-check):
   refreshIntervalMs: 60000

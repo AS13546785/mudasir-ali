@@ -794,8 +794,10 @@ function goTo(index) {
   currentIndex = Math.max(0, Math.min(index, totalGroups - 1));
 
   if (slides.length > 0) {
-    const slideWidth = slides[0].getBoundingClientRect().width + 16; 
-    const offset = currentIndex * slidesPerView * slideWidth;
+    const slideWidth = slides[0].getBoundingClientRect().width; 
+    const gap = slidesPerView === 1 ? 16 : 20;
+    const step = (slideWidth + gap) * slidesPerView;
+    const offset = currentIndex * step;
     track.style.transform = `translateX(-${offset}px)`;
   }
   updateDots();
@@ -1373,9 +1375,16 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
+  let seeMoreInitialized = false;
+  let isExpanded = false;
+
   function renderTable(headers, rows) {
     const thead = document.getElementById('sitesTableHead');
     const tbody = document.getElementById('sitesTableBody');
+    const expandWrap = document.getElementById('sitesExpandWrap');
+    const seeMoreBtn = document.getElementById('seeMoreSitesBtn');
+    const seeMoreText = document.getElementById('seeMoreText');
+    const seeMoreIcon = document.getElementById('seeMoreIcon');
     if (!tbody) return;
 
     // Render Headers if present
@@ -1383,12 +1392,56 @@ document.addEventListener('keydown', (e) => {
       thead.innerHTML = `<tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>`;
     }
 
-    // Render Rows
-    tbody.innerHTML = rows.map(row => {
-      return `<tr>${row.map((cell, colIdx) => {
+    const INITIAL_ROW_LIMIT = 8;
+    isExpanded = false;
+
+    // Render Rows (first 8 rows visible, rest marked as row-extra hidden-row)
+    tbody.innerHTML = rows.map((row, rowIdx) => {
+      const isExtra = rowIdx >= INITIAL_ROW_LIMIT;
+      const rowClass = isExtra ? ' class="row-extra hidden-row"' : '';
+      return `<tr${rowClass}>${row.map((cell, colIdx) => {
         return `<td>${formatTableCell(cell, colIdx, headers)}</td>`;
       }).join('')}</tr>`;
     }).join('');
+
+    // Expand / See More Bar control
+    if (expandWrap && seeMoreBtn) {
+      if (rows.length > INITIAL_ROW_LIMIT) {
+        expandWrap.style.display = 'block';
+        const extraCount = rows.length - INITIAL_ROW_LIMIT;
+        if (seeMoreText) seeMoreText.textContent = `See More Sites (+${extraCount} more)`;
+        if (seeMoreIcon) {
+          seeMoreIcon.className = 'fas fa-chevron-down';
+        }
+
+        if (!seeMoreInitialized) {
+          seeMoreInitialized = true;
+          seeMoreBtn.addEventListener('click', () => {
+            isExpanded = !isExpanded;
+            const extraRows = tbody.querySelectorAll('tr.row-extra');
+            extraRows.forEach(r => {
+              r.classList.toggle('hidden-row', !isExpanded);
+            });
+            if (isExpanded) {
+              if (seeMoreText) seeMoreText.textContent = 'See Less';
+              if (seeMoreIcon) {
+                seeMoreIcon.className = 'fas fa-chevron-up';
+              }
+            } else {
+              const count = extraRows.length;
+              if (seeMoreText) seeMoreText.textContent = `See More Sites (+${count} more)`;
+              if (seeMoreIcon) {
+                seeMoreIcon.className = 'fas fa-chevron-down';
+              }
+              const tableWrapper = document.querySelector('.sites-table-wrapper');
+              if (tableWrapper) tableWrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          });
+        }
+      } else {
+        expandWrap.style.display = 'none';
+      }
+    }
   }
 
   function escapeHtml(str) {

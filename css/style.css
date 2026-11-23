@@ -2787,8 +2787,18 @@ body.nav-open .navbar {
   .portfolio,
   .testimonials,
   .skills-stats {
-    overflow-x: hidden !important;
+    overflow-x: clip !important;
+    overflow-y: visible !important;
     max-width: 100vw !important;
+    touch-action: pan-y;
+  }
+
+  /* Prevent in-section scroll shifts on mobile: keep about image perfectly stable in place */
+  html body .about-image,
+  .about-image[data-aos],
+  .about-image {
+    transform: none !important;
+    opacity: 1 !important;
   }
 
   /* Prevent horizontal AOS animations from spilling off-screen on mobile */
@@ -2796,7 +2806,7 @@ body.nav-open .navbar {
   html body [data-aos="fade-right"],
   [data-aos="fade-left"],
   [data-aos="fade-right"] {
-    transform: translate3d(0, 25px, 0) !important;
+    transform: translate3d(0, 15px, 0) !important;
   }
 
   html body [data-aos="fade-left"].aos-animate,

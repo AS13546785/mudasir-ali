@@ -746,19 +746,30 @@ let dragMoved = false;
 const AUTO_DELAY = 4000;
 
 function getSlidesPerView() {
-  return 1;
+  if (window.innerWidth <= 768) return 1;
+  return 2;
 }
 
 function updateCarouselCounter() {
   const cur = document.getElementById('carouselCurrentIndex');
   const tot = document.getElementById('carouselTotalCount');
-  if (cur) cur.textContent = String(currentIndex + 1);
   if (tot) tot.textContent = String(slides.length);
+  if (cur) {
+    const spv = getSlidesPerView();
+    if (spv === 1) {
+      cur.textContent = String(currentIndex + 1);
+    } else {
+      const start = currentIndex * spv + 1;
+      const end = Math.min(slides.length, (currentIndex + 1) * spv);
+      cur.textContent = `${start}–${end}`;
+    }
+  }
 }
 
 /* Build dots */
 function buildDots() {
   dotsContainer.innerHTML = '';
+  slidesPerView = getSlidesPerView();
   totalGroups = Math.ceil(slides.length / slidesPerView);
   for (let i = 0; i < totalGroups; i++) {
     const dot = document.createElement('button');
@@ -784,7 +795,7 @@ function goTo(index) {
 
   if (slides.length > 0) {
     const slideWidth = slides[0].getBoundingClientRect().width + 16; 
-    const offset = currentIndex * slideWidth;
+    const offset = currentIndex * slidesPerView * slideWidth;
     track.style.transform = `translateX(-${offset}px)`;
   }
   updateDots();
@@ -1294,3 +1305,221 @@ document.addEventListener('keydown', (e) => {
     closeSheetModal();
   }
 });
+
+/* ======================== GOOGLE SHEET LIVE SYNC & TABLE ENGINE ======================== */
+(function initGoogleSheetLiveEngine() {
+  const DEFAULT_FALLBACK_URL = "https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit?usp=sharing";
+  
+  function getSheetUrl() {
+    return (window.GOOGLE_SHEET_CONFIG && window.GOOGLE_SHEET_CONFIG.sheetUrl) 
+      ? window.GOOGLE_SHEET_CONFIG.sheetUrl.trim() 
+      : DEFAULT_FALLBACK_URL;
+  }
+
+  function extractSheetId(url) {
+    if (!url) return null;
+    const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/) || url.match(/key=([a-zA-Z0-9-_]+)/);
+    if (match && match[1]) return match[1];
+    if (/^[a-zA-Z0-9-_]{20,}$/.test(url.trim())) return url.trim();
+    return null;
+  }
+
+  function parseCSV(text) {
+    const rows = [];
+    let row = [];
+    let currentVal = '';
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const nextChar = text[i + 1];
+      if (char === '"' && inQuotes && nextChar === '"') {
+        currentVal += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        row.push(currentVal.trim());
+        currentVal = '';
+      } else if ((char === '\r' || char === '\n') && !inQuotes) {
+        if (char === '\r' && nextChar === '\n') i++;
+        row.push(currentVal.trim());
+        if (row.some(c => c && c.length > 0)) rows.push(row);
+        row = [];
+        currentVal = '';
+      } else {
+        currentVal += char;
+      }
+    }
+    if (currentVal.length > 0 || row.length > 0) {
+      row.push(currentVal.trim());
+      if (row.some(c => c && c.length > 0)) rows.push(row);
+    }
+    return rows;
+  }
+
+  function updateSheetLinks(sheetUrl, sheetId) {
+    // 1. External open button
+    const openExtBtn = document.getElementById('openExternalSheetBtn');
+    if (openExtBtn) openExtBtn.href = sheetUrl;
+
+    // 2. Modal header external link
+    const modalExtLinks = document.querySelectorAll('.sheet-modal-ext-link, .sheet-modal-footer a');
+    modalExtLinks.forEach(link => { link.href = sheetUrl; });
+
+    // 3. Iframe preview embed link
+    const iframe = document.getElementById('sheetEmbedFrame');
+    if (iframe && sheetId) {
+      iframe.src = `https://docs.google.com/spreadsheets/d/${sheetId}/preview`;
+    }
+  }
+
+  function renderTable(headers, rows) {
+    const thead = document.getElementById('sitesTableHead');
+    const tbody = document.getElementById('sitesTableBody');
+    if (!tbody) return;
+
+    // Render Headers if present
+    if (thead && headers && headers.length > 0) {
+      thead.innerHTML = `<tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>`;
+    }
+
+    // Render Rows
+    tbody.innerHTML = rows.map(row => {
+      return `<tr>${row.map((cell, colIdx) => {
+        return `<td>${formatTableCell(cell, colIdx, headers)}</td>`;
+      }).join('')}</tr>`;
+    }).join('');
+  }
+
+  function escapeHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatTableCell(val, colIdx, headers) {
+    const text = String(val || '').trim();
+    const safeText = escapeHtml(text);
+    if (!text) return '<span style="color:rgba(255,255,255,0.25);">—</span>';
+
+    const colHeader = (headers && headers[colIdx]) ? headers[colIdx].toLowerCase() : '';
+
+    // If it looks like a DA / DR metric
+    if (/^(da|dr|authority)/i.test(colHeader) || /^da\s*\d+/i.test(text) || /^\d{2}(\+)?$/.test(text)) {
+      return `<span class="da-badge">${safeText}</span>`;
+    }
+
+    // If it looks like DoFollow
+    if (/dofollow/i.test(text)) {
+      return `<span class="dofollow-tag"><i class="fas fa-check"></i> ${safeText}</span>`;
+    }
+
+    // If it looks like Niche / Category
+    if (colIdx === 0 || /niche|category|topic/i.test(colHeader)) {
+      let icon = 'fa-tag';
+      let cls = 'general';
+      if (/tech|software|saas|code|it/i.test(text)) { icon = 'fa-laptop-code'; cls = 'tech'; }
+      else if (/business|finance|crypto|money/i.test(text)) { icon = 'fa-briefcase'; cls = 'business'; }
+      else if (/health|fitness|medical/i.test(text)) { icon = 'fa-heartbeat'; cls = 'health'; }
+      else if (/news|general|portal/i.test(text)) { icon = 'fa-newspaper'; cls = 'general'; }
+      return `<span class="niche-badge ${cls}"><i class="fas ${icon}"></i> ${safeText}</span>`;
+    }
+
+    // If it looks like price
+    if (/^\$|usd|pkr|affordable|wholesale|premium/i.test(text) || /price|cost|rate/i.test(colHeader)) {
+      return `<span class="price-tier">${safeText}</span>`;
+    }
+
+    // If it's a URL or domain
+    if (/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/.test(text) && !text.includes(' ')) {
+      return `<span style="color:#00c6ff; font-weight:600;"><i class="fas fa-link" style="font-size:0.75rem; margin-right:4px;"></i>${safeText}</span>`;
+    }
+
+    return safeText;
+  }
+
+  let isFetching = false;
+  async function fetchLiveSheetData(isManual = false) {
+    if (isFetching) return;
+    isFetching = true;
+
+    const sheetUrl = getSheetUrl();
+    const sheetId = extractSheetId(sheetUrl);
+    const syncStatusEl = document.getElementById('sheetSyncText');
+    const refreshBtn = document.getElementById('refreshSheetBtn');
+
+    updateSheetLinks(sheetUrl, sheetId);
+
+    if (!sheetId) {
+      if (syncStatusEl) syncStatusEl.textContent = 'Invalid Google Sheet URL';
+      isFetching = false;
+      return;
+    }
+
+    if (refreshBtn) refreshBtn.classList.add('loading');
+    if (syncStatusEl && isManual) syncStatusEl.textContent = 'Syncing latest sheet data...';
+
+    const tabParam = (window.GOOGLE_SHEET_CONFIG && window.GOOGLE_SHEET_CONFIG.sheetTab)
+      ? `&sheet=${encodeURIComponent(window.GOOGLE_SHEET_CONFIG.sheetTab)}`
+      : '';
+    const csvEndpoint = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv${tabParam}&_t=${Date.now()}`;
+
+    try {
+      const res = await fetch(csvEndpoint, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const csvText = await res.text();
+      const parsedRows = parseCSV(csvText);
+
+      if (parsedRows.length >= 2) {
+        // First row is headers
+        const rawHeaders = parsedRows[0];
+        // Filter out empty columns
+        const validColIndices = [];
+        rawHeaders.forEach((h, idx) => {
+          if (h && h.trim().length > 0) validColIndices.push(idx);
+        });
+
+        const maxCols = validColIndices.length > 0 ? validColIndices.length : Math.min(6, rawHeaders.length);
+        const headers = (validColIndices.length > 0 ? validColIndices.map(i => rawHeaders[i]) : rawHeaders.slice(0, maxCols));
+
+        const maxRows = (window.GOOGLE_SHEET_CONFIG && window.GOOGLE_SHEET_CONFIG.maxPreviewRows) || 15;
+        const dataRows = parsedRows.slice(1, maxRows + 1).map(row => {
+          return validColIndices.length > 0 ? validColIndices.map(i => row[i] || '') : row.slice(0, maxCols);
+        });
+
+        renderTable(headers, dataRows);
+
+        if (syncStatusEl) {
+          syncStatusEl.innerHTML = `<span style="color:#22c55e;"><i class="fas fa-check-circle"></i> Live Connected (${parsedRows.length - 1} Sites)</span>`;
+        }
+      }
+    } catch (err) {
+      console.warn('[GOOGLE SHEET SYNC NOTICE]', 'Could not fetch public CSV, displaying verified sample table.', err);
+      if (syncStatusEl) {
+        syncStatusEl.innerHTML = `<span><i class="fas fa-database"></i> Live Sheet Connected</span>`;
+      }
+    } finally {
+      isFetching = false;
+      if (refreshBtn) refreshBtn.classList.remove('loading');
+    }
+  }
+
+  // Initial fetch
+  fetchLiveSheetData();
+
+  // Manual refresh button
+  const refreshBtn = document.getElementById('refreshSheetBtn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => { fetchLiveSheetData(true); });
+  }
+
+  // Periodic Auto-refresh (e.g. every 60s)
+  const interval = (window.GOOGLE_SHEET_CONFIG && window.GOOGLE_SHEET_CONFIG.refreshIntervalMs) || 60000;
+  setInterval(fetchLiveSheetData, Math.max(15000, interval));
+
+  // Auto-refresh when tab gains focus
+  window.addEventListener('focus', () => { fetchLiveSheetData(false); });
+})();

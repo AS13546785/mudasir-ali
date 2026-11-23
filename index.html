@@ -522,8 +522,17 @@
 
         <!-- Sample Sites Preview Table -->
         <div class="sites-table-wrapper">
-          <table class="sites-preview-table">
-            <thead>
+          <div class="sites-table-topbar">
+            <div class="sites-live-indicator" id="sheetSyncStatus">
+              <span class="live-dot"></span>
+              <span id="sheetSyncText">Connecting to Google Sheet...</span>
+            </div>
+            <button type="button" class="sites-refresh-btn" id="refreshSheetBtn" title="Refresh data from Google Sheet">
+              <i class="fas fa-sync-alt"></i> <span>Refresh</span>
+            </button>
+          </div>
+          <table class="sites-preview-table" id="sitesPreviewTable">
+            <thead id="sitesTableHead">
               <tr>
                 <th>Niche Category</th>
                 <th>Domain Authority</th>
@@ -533,7 +542,7 @@
                 <th>Price Range</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="sitesTableBody">
               <tr>
                 <td><span class="niche-badge tech"><i class="fas fa-laptop-code"></i> Tech &amp; Software</span></td>
                 <td><span class="da-badge">DA 75+ / DR 78</span></td>
@@ -577,8 +586,9 @@
              rel="noopener noreferrer"
              class="btn btn-primary btn-sheet-open"
              id="openExternalSheetBtn">
+            <i class="fas fa-file-excel"></i>
+            <span>Open Full Site List &amp; Pricing</span>
             <i class="fas fa-external-link-alt"></i>
-            <span>Open Google Sheet (Full List &amp; Prices)</span>
           </a>
 
           <!-- Button 2: In-website modal preview -->
@@ -1085,7 +1095,8 @@
   <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
   <!-- Locomotive Scroll v5 -->
   <script src="https://cdn.jsdelivr.net/npm/locomotive-scroll@5.0.1/bundled/locomotive-scroll.min.js"></script>
-  <!-- Custom JS -->
+  <!-- Custom Sheet Config & Main JS -->
+  <script src="js/sheet-config.js"></script>
   <script src="js/main.js"></script>
 </body>
 

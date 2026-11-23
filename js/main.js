@@ -163,6 +163,13 @@ function setMobileMenuOpen(isOpen) {
       if (locoScroll.lenisInstance && typeof locoScroll.lenisInstance.start === 'function') {
         locoScroll.lenisInstance.start();
       }
+      // Recompute document scroll geometry now that overflow: hidden / height: 100% is removed
+      requestAnimationFrame(() => {
+        if (typeof locoScroll.resize === 'function') locoScroll.resize();
+        if (locoScroll.lenisInstance && typeof locoScroll.lenisInstance.resize === 'function') {
+          locoScroll.lenisInstance.resize();
+        }
+      });
     }
   }
 }
@@ -321,13 +328,6 @@ if (navBackdrop) {
   navBackdrop.addEventListener('touchend', handleBackdropClose, { passive: false });
 }
 
-// Close mobile menu on link click
-navLinkItems.forEach(link => {
-  link.addEventListener('click', () => {
-    setMobileMenuOpen(false);
-  });
-});
-
 // Close mobile menu when tapping outside drawer
 document.addEventListener('click', (event) => {
   if (!isMobileViewport() || !navLinks || !hamburger) return;
@@ -366,20 +366,83 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') setMobileMenuOpen(false);
 });
 
-/* Smooth scroll for nav links */
-document.querySelectorAll('a[href^="#"]').forEach(link => {
-  link.addEventListener('click', (e) => {
-    const href = link.getAttribute('href');
-    if (href === '#' || href === '') return;
-    const target = document.querySelector(href);
-    if (!target) return;
-    e.preventDefault();
-    if (locoScroll && typeof locoScroll.scrollTo === 'function') {
-      locoScroll.scrollTo(target, { offset: -70, duration: 0.9 });
+/* Smooth scroll for nav links & mobile drawer items */
+function handleNavLinkClick(e) {
+  const link = e.currentTarget || this;
+  const href = link.getAttribute('href');
+  if (!href || href === '#') return;
+
+  const isHome = href === '#home';
+  const target = isHome ? (document.getElementById('home') || document.body) : document.querySelector(href);
+  if (!target) return;
+
+  e.preventDefault();
+
+  const isMenuOpen = document.body.classList.contains('nav-open') || (navLinks && navLinks.classList.contains('open'));
+  if (isMenuOpen) {
+    setMobileMenuOpen(false);
+  }
+
+  // Set active class on clicked link immediately
+  navLinkItems.forEach(item => {
+    if (item === link || item.getAttribute('href') === href) {
+      item.classList.add('active');
     } else {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      item.classList.remove('active');
     }
   });
+
+  const doScroll = () => {
+    const navHeight = 70;
+    if (locoScroll && typeof locoScroll.resize === 'function') locoScroll.resize();
+    if (locoScroll && locoScroll.lenisInstance && typeof locoScroll.lenisInstance.resize === 'function') {
+      locoScroll.lenisInstance.resize();
+    }
+
+    if (isHome) {
+      if (locoScroll && typeof locoScroll.scrollTo === 'function') {
+        locoScroll.scrollTo(0, { offset: 0 });
+      } else if (locoScroll && locoScroll.lenisInstance && typeof locoScroll.lenisInstance.scrollTo === 'function') {
+        locoScroll.lenisInstance.scrollTo(0);
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      return;
+    }
+
+    try {
+      if (locoScroll && typeof locoScroll.scrollTo === 'function') {
+        locoScroll.scrollTo(target, { offset: -navHeight });
+      } else if (locoScroll && locoScroll.lenisInstance && typeof locoScroll.lenisInstance.scrollTo === 'function') {
+        const rect = target.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+        const targetY = Math.max(0, rect.top + scrollTop - navHeight);
+        locoScroll.lenisInstance.scrollTo(targetY);
+      } else {
+        const rect = target.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+        const targetY = Math.max(0, rect.top + scrollTop - navHeight);
+        window.scrollTo({ top: targetY, behavior: 'smooth' });
+      }
+    } catch (err) {
+      console.error('[NAV SCROLL ERROR]', err);
+      const rect = target.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+      const targetY = Math.max(0, rect.top + scrollTop - navHeight);
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+    }
+  };
+
+  if (isMenuOpen) {
+    // Wait for drawer slide-out and body overflow unlocking before scrolling
+    setTimeout(doScroll, 160);
+  } else {
+    doScroll();
+  }
+}
+
+document.querySelectorAll('a[href^="#"]').forEach(link => {
+  link.addEventListener('click', handleNavLinkClick);
 });
 
 /* ======================== AOS INIT ======================== */

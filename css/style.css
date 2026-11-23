@@ -898,14 +898,14 @@ body.nav-open .navbar {
 }
 
 .profile-img {
-  width: 88%;
-  height: 96%;
+  width: 95%;
+  height: 98%;
   object-fit: contain;
   object-position: center bottom;
   position: relative;
   z-index: 5;
   filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.35));
-  transform: scale(1.04);
+  transform: scale(1.12);
   transform-origin: center bottom;
 }
 
@@ -2533,6 +2533,8 @@ body.nav-open .navbar {
     border-radius: 0;
     box-shadow: none;
     text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
     transition: all 0.2s ease;
     -webkit-tap-highlight-color: transparent !important;
   }

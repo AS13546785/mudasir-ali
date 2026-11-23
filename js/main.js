@@ -746,8 +746,14 @@ let dragMoved = false;
 const AUTO_DELAY = 4000;
 
 function getSlidesPerView() {
-  if (window.innerWidth <= 768) return 1;
-  return 2;
+  return 1;
+}
+
+function updateCarouselCounter() {
+  const cur = document.getElementById('carouselCurrentIndex');
+  const tot = document.getElementById('carouselTotalCount');
+  if (cur) cur.textContent = String(currentIndex + 1);
+  if (tot) tot.textContent = String(slides.length);
 }
 
 /* Build dots */
@@ -762,6 +768,7 @@ function buildDots() {
     dot.addEventListener('click', () => goTo(i));
     dotsContainer.appendChild(dot);
   }
+  updateCarouselCounter();
 }
 
 function updateDots() {
@@ -777,10 +784,11 @@ function goTo(index) {
 
   if (slides.length > 0) {
     const slideWidth = slides[0].getBoundingClientRect().width + 16; 
-    const offset = currentIndex * slidesPerView * slideWidth;
+    const offset = currentIndex * slideWidth;
     track.style.transform = `translateX(-${offset}px)`;
   }
   updateDots();
+  updateCarouselCounter();
 }
 
 function next() {
@@ -1256,4 +1264,33 @@ document.addEventListener('touchend', (e) => {
 
 document.addEventListener('gesturestart', (e) => {
   e.preventDefault();
+});
+
+/* ======================== GOOGLE SHEET IN-WEBSITE MODAL ======================== */
+const openSheetModalBtn = document.getElementById('openSheetModalBtn');
+const closeSheetModalBtn = document.getElementById('closeSheetModalBtn');
+const sheetModal = document.getElementById('sheetModal');
+const sheetModalBackdrop = document.getElementById('sheetModalBackdrop');
+
+function openSheetModal() {
+  if (!sheetModal) return;
+  sheetModal.classList.add('open');
+  sheetModal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+}
+
+function closeSheetModal() {
+  if (!sheetModal) return;
+  sheetModal.classList.remove('open');
+  sheetModal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+}
+
+if (openSheetModalBtn) openSheetModalBtn.addEventListener('click', openSheetModal);
+if (closeSheetModalBtn) closeSheetModalBtn.addEventListener('click', closeSheetModal);
+if (sheetModalBackdrop) sheetModalBackdrop.addEventListener('click', closeSheetModal);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && sheetModal && sheetModal.classList.contains('open')) {
+    closeSheetModal();
+  }
 });

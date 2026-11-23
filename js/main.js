@@ -151,6 +151,11 @@ function setMobileMenuOpen(isOpen) {
   document.body.classList.toggle('nav-open', isOpen);
   document.documentElement.classList.toggle('nav-open', isOpen);
 
+  if (isOpen) {
+    updateMetricsCache();
+    runScrollBatch();
+  }
+
   // Stop / Resume LocomotiveScroll & Lenis when menu is open to prevent background scrolling
   if (locoScroll) {
     if (isOpen) {
@@ -194,20 +199,26 @@ let cachedSections = [];
 let cachedMaxScroll = 1;
 
 function updateMetricsCache() {
+  const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
   const sections = document.querySelectorAll('section[id]');
-  cachedSections = Array.from(sections).map(section => ({
-    id: section.getAttribute('id'),
-    top: section.offsetTop,
-    height: section.offsetHeight
-  }));
+  cachedSections = Array.from(sections).map(section => {
+    const rect = section.getBoundingClientRect();
+    return {
+      id: section.getAttribute('id'),
+      top: rect.top + scrollY,
+      height: section.offsetHeight || rect.height
+    };
+  });
   const docH = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
   cachedMaxScroll = Math.max(1, docH - window.innerHeight);
 }
 
 window.addEventListener('resize', updateMetricsCache, { passive: true });
 window.addEventListener('load', updateMetricsCache, { passive: true });
+window.addEventListener('orientationchange', updateMetricsCache, { passive: true });
 updateMetricsCache();
 setTimeout(updateMetricsCache, 400);
+setTimeout(updateMetricsCache, 1200);
 
 let scrollTicking = false;
 function triggerScrollUpdate() {
@@ -245,20 +256,27 @@ function runScrollBatch() {
 
   // 2. Active Nav Link (Zero forced layout reflow - using cached geometry)
   if (cachedSections.length > 0) {
-    const scrollPos = scrolled + window.innerHeight / 3;
-    for (let i = 0; i < cachedSections.length; i++) {
-      const sec = cachedSections[i];
-      if (scrollPos >= sec.top && scrollPos < sec.top + sec.height) {
-        navLinkItems.forEach(link => {
-          if (link.getAttribute('data-section') === sec.id) {
-            link.classList.add('active');
-          } else {
-            link.classList.remove('active');
-          }
-        });
-        break;
+    let currentId = 'home';
+    const isAtBottom = (scrolled + window.innerHeight) >= (cachedMaxScroll - 50);
+    if (isAtBottom) {
+      currentId = 'contact';
+    } else {
+      const scrollPos = scrolled + Math.min(260, window.innerHeight / 3);
+      for (let i = 0; i < cachedSections.length; i++) {
+        const sec = cachedSections[i];
+        if (scrollPos >= sec.top && scrollPos < sec.top + sec.height) {
+          currentId = sec.id;
+          break;
+        }
       }
     }
+    navLinkItems.forEach(link => {
+      if (link.getAttribute('data-section') === currentId) {
+        link.classList.add('active');
+      } else {
+        link.classList.remove('active');
+      }
+    });
   }
 
   // 3. Scroll progress bar (Zero forced layout reflow)
@@ -886,6 +904,17 @@ track.addEventListener('click', (e) => {
 // Pause autoplay on hover
 carouselEl.addEventListener('mouseenter', stopAutoplay);
 carouselEl.addEventListener('mouseleave', startAutoplay);
+
+// Ensure all carousel images load eagerly and immediately on both desktop and mobile
+slides.forEach(slide => {
+  const img = slide.querySelector('img');
+  if (img) {
+    img.loading = 'eager';
+    if (!img.complete) {
+      img.addEventListener('load', updateMetricsCache, { once: true });
+    }
+  }
+});
 
 // Init
 buildDots();
